@@ -1,0 +1,389 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Reusable Hardened Global Helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'hiteshmishra910@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidRole(role) {
+      return role is string && role in ['resident', 'collector', 'admin'];
+    }
+
+    function isValidUserAccount(data) {
+      return data.keys().hasAll(['uid', 'email', 'name', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'name', 'role', 'residentId', 'collectorId', 'phone', 'updatedAt', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 1 && data.email.size() <= 160 &&
+        data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+        isValidRole(data.role) &&
+        (!('residentId' in data) || (data.residentId is string && data.residentId.size() <= 128)) &&
+        (!('collectorId' in data) || (data.collectorId is string && data.collectorId.size() <= 128)) &&
+        (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidResident(data) {
+      return data.keys().hasAll([
+        'residentId',
+        'householdId',
+        'name',
+        'address',
+        'area',
+        'city',
+        'pin',
+        'phone',
+        'rewardPoints',
+        'role',
+        'ownerUid',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'residentId',
+        'householdId',
+        'name',
+        'address',
+        'area',
+        'city',
+        'pin',
+        'pinCode',
+        'phone',
+        'token',
+        'rewardPoints',
+        'collectionsCount',
+        'role',
+        'ownerUid',
+        'eligibleForAdminReview',
+        'createdAt'
+      ]) &&
+      isValidId(data.residentId) &&
+      isValidId(data.householdId) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.address is string && data.address.size() >= 1 && data.address.size() <= 250 &&
+      data.area is string && data.area.size() >= 1 && data.area.size() <= 120 &&
+      data.city is string && data.city.size() >= 1 && data.city.size() <= 100 &&
+      data.pin is string && data.pin.size() >= 1 && data.pin.size() <= 20 &&
+      data.phone is string && data.phone.size() >= 1 && data.phone.size() <= 30 &&
+      data.rewardPoints is number && data.rewardPoints >= 0 && data.rewardPoints <= 1000000 &&
+      data.role is string && data.role == 'resident' &&
+      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidCollector(data) {
+      return data.keys().hasAll([
+        'collectorId',
+        'name',
+        'vehicleId',
+        'assignedArea',
+        'phone',
+        'role',
+        'ownerUid',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'collectorId',
+        'name',
+        'vehicleId',
+        'assignedArea',
+        'phone',
+        'role',
+        'ownerUid',
+        'latitude',
+        'longitude',
+        'gpsActive',
+        'updatedAt',
+        'createdAt'
+      ]) &&
+      isValidId(data.collectorId) &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.vehicleId is string && data.vehicleId.size() >= 1 && data.vehicleId.size() <= 60 &&
+      data.assignedArea is string && data.assignedArea.size() >= 1 && data.assignedArea.size() <= 120 &&
+      data.phone is string && data.phone.size() >= 1 && data.phone.size() <= 30 &&
+      data.role is string && data.role == 'collector' &&
+      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidHousehold(data) {
+      return data.keys().hasAll([
+        'residentId',
+        'householdId',
+        'token',
+        'name',
+        'address',
+        'area',
+        'city',
+        'pinCode',
+        'rewardPoints',
+        'collectionsCount',
+        'ownerUid',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'residentId',
+        'householdId',
+        'token',
+        'name',
+        'address',
+        'area',
+        'city',
+        'pin',
+        'pinCode',
+        'phone',
+        'role',
+        'rewardPoints',
+        'collectionsCount',
+        'eligibleForAdminReview',
+        'ownerUid',
+        'createdAt'
+      ]) &&
+      isValidId(data.residentId) &&
+      isValidId(data.householdId) &&
+      data.token is string && data.token.size() >= 1 && data.token.size() <= 256 &&
+      data.name is string && data.name.size() >= 1 && data.name.size() <= 120 &&
+      data.address is string && data.address.size() >= 1 && data.address.size() <= 250 &&
+      data.area is string && data.area.size() >= 1 && data.area.size() <= 120 &&
+      data.city is string && data.city.size() >= 1 && data.city.size() <= 100 &&
+      data.pinCode is string && data.pinCode.size() >= 1 && data.pinCode.size() <= 20 &&
+      data.rewardPoints is number && data.rewardPoints >= 0 && data.rewardPoints <= 1000000 &&
+      data.collectionsCount is number && data.collectionsCount >= 0 && data.collectionsCount <= 100000 &&
+      data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidCollection(data) {
+      return data.keys().hasAll([
+        'collectionId',
+        'residentId',
+        'householdId',
+        'residentName',
+        'address',
+        'collectorId',
+        'collectorUid',
+        'collectorName',
+        'vehicleId',
+        'wasteType',
+        'confidence',
+        'imageUrl',
+        'latitude',
+        'longitude',
+        'timestamp',
+        'rewardPoints',
+        'status',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'collectionId',
+        'residentId',
+        'residentUid',
+        'householdId',
+        'residentName',
+        'address',
+        'area',
+        'city',
+        'pinCode',
+        'collectorId',
+        'collectorUid',
+        'collectorName',
+        'vehicleId',
+        'vehicleNumber',
+        'wasteType',
+        'wasteCategory',
+        'detectedObject',
+        'confidence',
+        'reason',
+        'imageUrl',
+        'latitude',
+        'longitude',
+        'gpsLocation',
+        'timestamp',
+        'createdAt',
+        'rewardPoints',
+        'rewardPointsEarned',
+        'status'
+      ]) &&
+      isValidId(data.collectionId) &&
+      isValidId(data.residentId) &&
+      isValidId(data.householdId) &&
+      data.residentName is string && data.residentName.size() >= 1 && data.residentName.size() <= 120 &&
+      data.address is string && data.address.size() >= 1 && data.address.size() <= 250 &&
+      data.collectorId is string && data.collectorId.size() >= 1 && data.collectorId.size() <= 128 &&
+      data.collectorUid is string && data.collectorUid.size() >= 1 && data.collectorUid.size() <= 128 &&
+      data.collectorUid == request.auth.uid &&
+      data.collectorName is string && data.collectorName.size() >= 1 && data.collectorName.size() <= 120 &&
+      data.vehicleId is string && data.vehicleId.size() >= 1 && data.vehicleId.size() <= 60 &&
+      data.wasteType is string && data.wasteType.size() >= 1 && data.wasteType.size() <= 60 &&
+      data.confidence is number && data.confidence >= 0 && data.confidence <= 100 &&
+      data.imageUrl is string && data.imageUrl.size() >= 1 && data.imageUrl.size() <= 2000 &&
+      data.latitude is number && data.latitude >= -90 && data.latitude <= 90 &&
+      data.longitude is number && data.longitude >= -180 && data.longitude <= 180 &&
+      data.timestamp is timestamp &&
+      data.rewardPoints is number && data.rewardPoints >= 0 && data.rewardPoints <= 1000 &&
+      data.status is string && data.status == 'VERIFIED' &&
+      data.createdAt is timestamp;
+    }
+
+    function isValidIncentive(data) {
+      return data.keys().hasAll([
+        'incentiveId',
+        'programName',
+        'eligibility',
+        'rewardAmount',
+        'startDate',
+        'endDate',
+        'status',
+        'notes',
+        'supportingDocuments',
+        'createdByUid',
+        'createdAt'
+      ]) &&
+      data.keys().hasOnly([
+        'incentiveId',
+        'programName',
+        'eligibility',
+        'rewardAmount',
+        'startDate',
+        'endDate',
+        'status',
+        'notes',
+        'supportingDocuments',
+        'createdByUid',
+        'createdAt'
+      ]) &&
+      isValidId(data.incentiveId) &&
+      data.programName is string && data.programName.size() >= 1 && data.programName.size() <= 160 &&
+      data.eligibility is string && data.eligibility.size() >= 1 && data.eligibility.size() <= 300 &&
+      data.rewardAmount is string && data.rewardAmount.size() >= 1 && data.rewardAmount.size() <= 100 &&
+      data.startDate is string && data.startDate.size() >= 1 && data.startDate.size() <= 40 &&
+      data.endDate is string && data.endDate.size() >= 1 && data.endDate.size() <= 40 &&
+      data.status is string && data.status in ['ACTIVE', 'UPCOMING', 'PAUSED', 'CLOSED'] &&
+      data.notes is string && data.notes.size() >= 1 && data.notes.size() <= 500 &&
+      data.supportingDocuments is string && data.supportingDocuments.size() >= 1 && data.supportingDocuments.size() <= 300 &&
+      data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+      data.createdAt is timestamp;
+    }
+
+    match /admins/{adminId} {
+      allow get: if isVerifiedUser() && isValidId(adminId) && (request.auth.uid == adminId || isAdmin());
+      allow list, create, update, delete: if false;
+    }
+
+    match /users/{userId} {
+      allow get: if isVerifiedUser() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isVerifiedUser() && (existing().uid == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(userId) && request.auth.uid == userId && isValidUserAccount(incoming()) && incoming().uid == userId && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(userId) && isValidUserAccount(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        (request.auth.uid == userId || isAdmin()) &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['name', 'role', 'residentId', 'collectorId', 'phone', 'updatedAt']);
+      allow delete: if isVerifiedUser() && isValidId(userId) && isAdmin();
+    }
+
+    match /residents/{residentId} {
+      allow get: if isVerifiedUser() && isValidId(residentId);
+      allow list: if isVerifiedUser() && (existing().role == 'resident' || existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(residentId) && isValidResident(incoming()) && incoming().residentId == residentId && (incoming().ownerUid == request.auth.uid || isAdmin()) && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(residentId) && isValidResident(incoming()) &&
+        incoming().residentId == existing().residentId &&
+        incoming().householdId == existing().householdId &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (existing().ownerUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'address', 'area', 'city', 'pin', 'pinCode', 'phone', 'rewardPoints', 'collectionsCount', 'eligibleForAdminReview'])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['rewardPoints', 'collectionsCount']) &&
+           incoming().rewardPoints >= existing().rewardPoints)
+        );
+      allow delete: if isVerifiedUser() && isValidId(residentId) && isAdmin();
+    }
+
+    match /collectors/{collectorId} {
+      allow get: if isVerifiedUser() && isValidId(collectorId);
+      allow list: if isVerifiedUser() && (existing().role == 'collector' || existing().ownerUid == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(collectorId) && isValidCollector(incoming()) && incoming().collectorId == collectorId && (incoming().ownerUid == request.auth.uid || isAdmin()) && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(collectorId) && isValidCollector(incoming()) &&
+        incoming().collectorId == existing().collectorId &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (existing().ownerUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'vehicleId', 'assignedArea', 'phone', 'latitude', 'longitude', 'gpsActive', 'updatedAt']))
+        );
+      allow delete: if isVerifiedUser() && isValidId(collectorId) && isAdmin();
+    }
+
+    match /households/{householdId} {
+      allow get: if isVerifiedUser() && isValidId(householdId);
+      allow list: if isVerifiedUser() && (existing().ownerUid == request.auth.uid || existing().rewardPoints >= 0 || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(householdId) && isValidHousehold(incoming()) && (incoming().ownerUid == request.auth.uid || isAdmin()) && incoming().householdId == householdId && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(householdId) && isValidHousehold(incoming()) &&
+        incoming().householdId == existing().householdId &&
+        incoming().residentId == existing().residentId &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt && (
+          isAdmin() ||
+          (existing().ownerUid == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'address', 'area', 'city', 'pin', 'pinCode', 'phone', 'token', 'rewardPoints', 'collectionsCount', 'eligibleForAdminReview'])) ||
+          (incoming().diff(existing()).affectedKeys().hasOnly(['rewardPoints', 'collectionsCount']) &&
+           incoming().rewardPoints >= existing().rewardPoints &&
+           incoming().collectionsCount == existing().collectionsCount + 1)
+        );
+      allow delete: if isVerifiedUser() && isValidId(householdId) && (existing().ownerUid == request.auth.uid || isAdmin());
+    }
+
+    match /collections/{collectionId} {
+      allow get: if isVerifiedUser() && isValidId(collectionId) && (existing().status == 'VERIFIED' || existing().collectorUid == request.auth.uid || isAdmin());
+      allow list: if isVerifiedUser() && (existing().status == 'VERIFIED' || existing().collectorUid == request.auth.uid || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(collectionId) && isValidCollection(incoming()) && incoming().collectionId == collectionId && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(collectionId) && isValidCollection(incoming()) &&
+        incoming().collectionId == existing().collectionId &&
+        incoming().collectorUid == existing().collectorUid &&
+        incoming().createdAt == existing().createdAt &&
+        isAdmin() &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['wasteType', 'wasteCategory', 'detectedObject', 'reason']);
+      allow delete: if isVerifiedUser() && isValidId(collectionId) && isAdmin();
+    }
+
+    match /incentives/{incentiveId} {
+      allow get: if isVerifiedUser() && isValidId(incentiveId);
+      allow list: if isVerifiedUser() && (existing().status in ['ACTIVE', 'UPCOMING', 'PAUSED', 'CLOSED'] || isAdmin());
+      allow create: if isVerifiedUser() && isValidId(incentiveId) && isAdmin() && isValidIncentive(incoming()) && incoming().incentiveId == incentiveId && incoming().createdAt == request.time;
+      allow update: if isVerifiedUser() && isValidId(incentiveId) && isAdmin() && isValidIncentive(incoming()) &&
+        incoming().incentiveId == existing().incentiveId &&
+        incoming().createdByUid == existing().createdByUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['programName', 'eligibility', 'rewardAmount', 'startDate', 'endDate', 'status', 'notes', 'supportingDocuments']);
+      allow delete: if isVerifiedUser() && isValidId(incentiveId) && isAdmin();
+    }
+  }
+}

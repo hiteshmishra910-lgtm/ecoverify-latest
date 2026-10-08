@@ -1,0 +1,542 @@
+{
+  "entities": {
+    "UserAccount": {
+      "title": "UserAccount",
+      "description": "Authenticated user role and profile mapping for Resident, Garbage Collector, or Admin.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email address",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "name": {
+          "type": "string",
+          "description": "Full display name",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "role": {
+          "type": "string",
+          "description": "Assigned role in EcoVerify",
+          "enum": ["resident", "collector", "admin"]
+        },
+        "residentId": {
+          "type": "string",
+          "description": "Linked residentId / householdId if role is resident",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "collectorId": {
+          "type": "string",
+          "description": "Linked collectorId if role is collector",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Registration timestamp"
+        }
+      },
+      "required": ["uid", "email", "name", "role", "createdAt"]
+    },
+    "Resident": {
+      "title": "Resident",
+      "description": "Registered resident record stored in residents/{residentId}.",
+      "type": "object",
+      "properties": {
+        "residentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "householdId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250
+        },
+        "area": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "pin": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "rewardPoints": {
+          "type": "number"
+        },
+        "collectionsCount": {
+          "type": "number"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["resident"]
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "eligibleForAdminReview": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "residentId",
+        "householdId",
+        "name",
+        "address",
+        "area",
+        "city",
+        "pin",
+        "phone",
+        "rewardPoints",
+        "role",
+        "ownerUid",
+        "createdAt"
+      ]
+    },
+    "Collector": {
+      "title": "Collector",
+      "description": "Registered municipal garbage collector stored in collectors/{collectorId}.",
+      "type": "object",
+      "properties": {
+        "collectorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "vehicleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "assignedArea": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "role": {
+          "type": "string",
+          "enum": ["collector"]
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "gpsActive": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "collectorId",
+        "name",
+        "vehicleId",
+        "assignedArea",
+        "phone",
+        "role",
+        "ownerUid",
+        "createdAt"
+      ]
+    },
+    "Household": {
+      "title": "Household",
+      "description": "Registered resident household record linked to a QR token for municipal waste collection.",
+      "type": "object",
+      "properties": {
+        "residentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "householdId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "token": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250
+        },
+        "area": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "pinCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 30
+        },
+        "role": {
+          "type": "string",
+          "enum": ["resident"]
+        },
+        "rewardPoints": {
+          "type": "number"
+        },
+        "collectionsCount": {
+          "type": "number"
+        },
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "residentId",
+        "householdId",
+        "token",
+        "name",
+        "address",
+        "area",
+        "city",
+        "pinCode",
+        "rewardPoints",
+        "collectionsCount",
+        "ownerUid",
+        "createdAt"
+      ]
+    },
+    "GarbageCollection": {
+      "title": "GarbageCollection",
+      "description": "Verified garbage collection record with AI waste classification, image URL, vehicle, GPS latitude/longitude, and rewards.",
+      "type": "object",
+      "properties": {
+        "collectionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "residentId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "householdId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "residentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "address": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 250
+        },
+        "area": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "city": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "pinCode": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "collectorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "collectorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "collectorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "vehicleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "vehicleNumber": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "wasteType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "wasteCategory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "detectedObject": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "confidence": {
+          "type": "number"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "imageUrl": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "gpsLocation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "rewardPoints": {
+          "type": "number"
+        },
+        "rewardPointsEarned": {
+          "type": "number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["VERIFIED"]
+        }
+      },
+      "required": [
+        "collectionId",
+        "residentId",
+        "householdId",
+        "residentName",
+        "address",
+        "collectorId",
+        "collectorUid",
+        "collectorName",
+        "vehicleId",
+        "wasteType",
+        "confidence",
+        "imageUrl",
+        "latitude",
+        "longitude",
+        "timestamp",
+        "rewardPoints",
+        "status",
+        "createdAt"
+      ]
+    },
+    "GovernmentIncentive": {
+      "title": "GovernmentIncentive",
+      "description": "Admin-managed municipal or government sustainability incentive program.",
+      "type": "object",
+      "properties": {
+        "incentiveId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "programName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "eligibility": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "rewardAmount": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "endDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "status": {
+          "type": "string",
+          "enum": ["ACTIVE", "UPCOMING", "PAUSED", "CLOSED"]
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        },
+        "supportingDocuments": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "createdByUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "incentiveId",
+        "programName",
+        "eligibility",
+        "rewardAmount",
+        "startDate",
+        "endDate",
+        "status",
+        "notes",
+        "supportingDocuments",
+        "createdByUid",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserAccount" },
+      "description": "Role-based user account record mapping UID to resident, collector, or admin"
+    },
+    "/residents/{residentId}": {
+      "schema": { "$ref": "#/entities/Resident" },
+      "description": "Registered residents indexed by residentId"
+    },
+    "/collectors/{collectorId}": {
+      "schema": { "$ref": "#/entities/Collector" },
+      "description": "Registered municipal waste collectors indexed by collectorId"
+    },
+    "/households/{householdId}": {
+      "schema": { "$ref": "#/entities/Household" },
+      "description": "Registered households indexed by householdId for QR lookup"
+    },
+    "/collections/{collectionId}": {
+      "schema": { "$ref": "#/entities/GarbageCollection" },
+      "description": "Verified garbage collection logs with AI waste type, GPS, and image"
+    },
+    "/incentives/{incentiveId}": {
+      "schema": { "$ref": "#/entities/GovernmentIncentive" },
+      "description": "Admin-managed government incentive programs"
+    }
+  }
+}

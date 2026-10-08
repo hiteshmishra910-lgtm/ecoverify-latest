@@ -1,0 +1,6 @@
+{
+  "name": "EcoVerify Waste & Resident Collector Portal",
+  "description": "Real-time municipal waste collection verification portal with live resident QR camera scanning, Firebase household registration, and Gemini AI waste classification.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
